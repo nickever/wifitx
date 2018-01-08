@@ -6,6 +6,7 @@ import os
 import re
 import sys
 import time
+import subprocess
 
 
 def return_numbers(string):  # Returns only numbers from an input string
@@ -18,10 +19,24 @@ def time_now():  # Returns time when run
     return time_now
 
 
+def data_filter(data, search_term):
+    data = [x.strip() for x in data]
+    for item in data:
+        if item.startswith(search_term):
+            return item
+
+
+def get_airport_data(stat):
+    airport_stdout = subprocess.Popen(
+        ["/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport",
+         "-I"], stdout=subprocess.PIPE)
+    airport_info = airport_stdout.communicate()[0].decode("utf-8").split('\n')   # [0] is stdout, [1] is stderr
+    filtered_info = data_filter(airport_info, stat)
+    return filtered_info
+
+
 def get_SSID():  # Returns SSID of the connected wifi network from osx
-    SSID = os.popen(
-        "/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I | grep ' SSID'").readline()
-    SSID = SSID.strip(" \n")
+    SSID = get_airport_data("SSID")
     return SSID
 
 
