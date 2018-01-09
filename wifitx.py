@@ -1,16 +1,18 @@
-#!/usr/bin/env Python3
-
-"""Continuously output tx rate of wifi"""
+#!/usr/bin/env python3
+"""
+Continuously output tx rate of wifi
+"""
 
 import re
 import sys
 import time
+import argparse
 import subprocess
 
 
-def return_numbers(string):  # Returns only numbers from an input string
-    values = re.findall("\d", string)
-    return "".join(values)
+__author__ = "Nick Everett"
+__version__ = "0.1.0"
+__license__ = "GNU GPLv3"
 
 
 def time_now():  # Returns time when run
@@ -66,6 +68,17 @@ def calculate_freq(channel):  # Determines if 2.4g of 5g network. Requires int i
             return "Wifi Frequency Unknown"
 
 
+def bits_to_bytes(number):  # converts input to bytes
+    number = int(number)
+    number /= 8
+    return number
+
+
+def return_numbers(string):  # Returns only numbers as string from an input string
+    values = re.findall("\d", string)
+    return "".join(values)
+
+
 def measure_tx(airport_data):      # Returns wifi tx rate from osX
     tx_string = data_filter(airport_data, "lastTxRate")
     tx_value = return_numbers(tx_string)
@@ -74,22 +87,55 @@ def measure_tx(airport_data):      # Returns wifi tx rate from osX
     return tx_value, tx_max_value
 
 
-try:       # Start up messages
-    print("Starting Wifi TX Tracker\n(Use cntl +c to end)\n")
-    initial_data = get_airport_data()
-    check_wifi_connection(initial_data, True)
-    network = get_network(initial_data)
-    print("{}\n{} - {}\n".format(network[0], network[1], calculate_freq(network[1])))
-    time.sleep(1)
-except KeyboardInterrupt:
-    sys.exit("\nKeyboard Interrupt, Exiting...\n")
-
-while True:     # Loop to report wifi tx and time stamp
-    try:
-        airport_data = get_airport_data()
-        connection_status = check_wifi_connection(airport_data)
-        tx = measure_tx(airport_data)
-        print("{} - {} / {} Mbps {}".format(time_now(), tx[0], tx[1], connection_status))
-        time.sleep(5)
+def main():
+    try:       # Start up messages
+        print("Starting Wifi TX Tracker\n(Use cntl +c to end)\n")
+        initial_data = get_airport_data()
+        check_wifi_connection(initial_data, True)
+        network = get_network(initial_data)
+        print("{}\n{} - {}\n".format(network[0],network[1], calculate_freq(network[1])))
+        time.sleep(1)
     except KeyboardInterrupt:
         sys.exit("\nKeyboard Interrupt, Exiting...\n")
+
+    while args.count > 0:     # Loop to report wifi tx and time stamp
+        try:
+            airport_data = get_airport_data()
+            connection_status = check_wifi_connection(airport_data)
+            tx = measure_tx(airport_data)
+            if args.bytes is True:
+                print("{} - {} / {} MBps {}".format(time_now(), bits_to_bytes(tx[0]),
+                                                    bits_to_bytes(tx[1]), connection_status))
+            else:
+                print("{} - {} / {} Mbps {}".format(time_now(), tx[0], tx[1], connection_status))
+            args.count -= 1
+            if args.count > 0:
+                time.sleep(args.interval)
+            else:
+                pass
+        except KeyboardInterrupt:
+            sys.exit("\nKeyboard Interrupt, Exiting...\n")
+
+
+if __name__ == "__main__":      # executed when run from the command line
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", type=int, dest="interval", action="store", default=5,
+                        help="interval between each wifi tx measurement"
+                             " in seconds. Default is 5.")
+    parser.add_argument("-c", type=int, dest="count", action="store", default=float("inf"),
+                        help="number of times to repeat the wifi tx measurement.")
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="count",
+        default=0,
+        help="verbosity (-v, -vv, etc)")
+    parser.add_argument(
+        "--version",
+        action="version",
+        version="%(prog)s (version {version})".format(version=__version__))
+    parser.add_argument("-b", "--bytes", dest="bytes", action="store_true", default=False,
+                        help="wifi tx rate is in Megabytes per second.")
+
+    args = parser.parse_args()
+    main()
