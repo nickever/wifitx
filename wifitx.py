@@ -1,6 +1,6 @@
 #!/usr/bin/env Python3
 
-"""Coninuiously output tx rate of wifi"""
+"""Continuously output tx rate of wifi"""
 
 import re
 import sys
@@ -18,37 +18,41 @@ def time_now():  # Returns time when run
     return time_now
 
 
-def data_filter(data, search_term):
-    data = [x.strip() for x in data]
-    for item in data:
-        if item.startswith(search_term):
-            return item
+def data_filter(data, search_term=None):     # Filters input data list by search term.
+    data = [x.strip() for x in data if x.strip()]
+    if search_term is not None:
+        for item in data:
+            if item.startswith(search_term):
+                return item
+    else:
+        return data
 
 
-def get_airport_data(stat):
+def get_airport_data():     # Fetches wifi data from terminal command
     airport_stdout = subprocess.Popen(
         ["/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport",
          "-I"], stdout=subprocess.PIPE)
-    airport_data = airport_stdout.communicate()[0].decode("utf-8").split('\n')   # [0] is stdout, [1] is stderr
-    airport_data = data_filter(airport_data, stat)
+    airport_data = airport_stdout.communicate()[0].decode("utf-8").split('\n')  # [0] is stdout, [1] is stderr
     return airport_data
 
 
-def check_wifi_on():
-    if "AirPort: Off" in get_airport_data(""):
+def check_wifi_connection(airport_data, startup=False):     # Check wifi on and network connected
+    airport_data = data_filter(airport_data, None)
+    if "AirPort: Off" in airport_data:
         sys.exit("Wireless Off. Exiting...\n")
+    elif "BSSID: 0:0:0:0:0:0" in airport_data:
+        if startup is True:
+            sys.exit("No Wireless Network Connection, Exiting...\n")
+        else:
+            return " - * Wireless Network Connection Disconnected *"
     else:
-        pass
+        return ""
 
 
-def get_SSID():  # Returns SSID of the connected wifi network from osx
-    SSID = get_airport_data("SSID")
-    return SSID
-
-
-def get_channel():  # Returns the channel info of the connected wifi network from osx
-    channel = get_airport_data("channel")
-    return channel
+def get_network(airport_data):  # Returns SSID and channel of the connected wifi network from osx
+    SSID = data_filter(airport_data, "SSID")
+    channel = data_filter(airport_data, "channel")
+    return SSID, channel
 
 
 def calculate_freq(channel):  # Determines if 2.4g of 5g network. Requires int input
@@ -62,30 +66,30 @@ def calculate_freq(channel):  # Determines if 2.4g of 5g network. Requires int i
             return "Wifi Frequency Unknown"
 
 
-def measure_tx():  # Returns wifi tx rate from osX
-    tx_string = get_airport_data("lastTxRate")
+def measure_tx(airport_data):      # Returns wifi tx rate from osX
+    tx_string = data_filter(airport_data, "lastTxRate")
     tx_value = return_numbers(tx_string)
-    return tx_value
-
-def get_max_tx():
-    tx_max_string = get_airport_data("maxRate")
+    tx_max_string = data_filter(airport_data, "maxRate")
     tx_max_value = return_numbers(tx_max_string)
-    return tx_max_value
+    return tx_value, tx_max_value
 
 
-try:
-    """Start up messages"""
+try:       # Start up messages
     print("Starting Wifi TX Tracker\n(Use cntl +c to end)\n")
-    check_wifi_on()
-    wifi_channel = get_channel()
-    print("{}\n{} - {}\n".format(get_SSID(), wifi_channel, calculate_freq(wifi_channel)))
+    initial_data = get_airport_data()
+    check_wifi_connection(initial_data, True)
+    network = get_network(initial_data)
+    print("{}\n{} - {}\n".format(network[0], network[1], calculate_freq(network[1])))
     time.sleep(1)
-except (KeyboardInterrupt):
-    sys.exit("\nKeyboared Interrupt, Exiting...\n")
+except KeyboardInterrupt:
+    sys.exit("\nKeyboard Interrupt, Exiting...\n")
 
-while True:
+while True:     # Loop to report wifi tx and time stamp
     try:
-        print("{} - {} / {} Mbps".format(time_now(), measure_tx(), get_max_tx()))
-        time.sleep(2)
-    except (KeyboardInterrupt):
+        airport_data = get_airport_data()
+        connection_status = check_wifi_connection(airport_data)
+        tx = measure_tx(airport_data)
+        print("{} - {} / {} Mbps {}".format(time_now(), tx[0], tx[1], connection_status))
+        time.sleep(5)
+    except KeyboardInterrupt:
         sys.exit("\nKeyboard Interrupt, Exiting...\n")
