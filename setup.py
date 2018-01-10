@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Copyright 2018 Nick Everett
 All Rights Reserved.
@@ -19,7 +19,8 @@ under the License.
 
 import io
 import os
-import setuptools
+import wifitx
+from setuptools import setup, find_packages
 
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -34,20 +35,24 @@ def read(*filenames, **kwargs):
             buf.append(f.read())
     return sep.join(buf)
 
-long_description = read('README.md')
+long_description = read('README.rst')
 
-setuptools.setup(
+setup(
     name='wifitx',
     version=wifitx.__version__,
     url='https://github.com/nickever/wifi-TxRate',
     license='GNU General Public License v3.0',
     author='Nick Everett',
     author_email='njeverett@gmail.com',
-    description='Command line interface for measuring a wifi transmission speed',
+    description='Command line interface for testing wifi transmission speed',
     long_description=long_description,
     keywords='wifi test speed transmission tx wifitx',
-    py_modules='wifitx',
-    entry_points={'console_scripts': 'wifitx=wifitx:main'},
+    py_modules=['wifitx'],
+    entry_points={  # Optional
+        'console_scripts': [
+            'wifitx=wifitx:main',
+        ],
+    },
     platforms='macOS',
     classifiers = [
         'Programming Language :: Python',

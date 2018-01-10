@@ -9,9 +9,8 @@ import time
 import argparse
 import subprocess
 
-
 __author__ = "Nick Everett"
-__version__ = "0.1.0"
+__version__ = "0.5.0"
 __license__ = "GNU GPLv3"
 
 
@@ -87,7 +86,39 @@ def measure_tx(airport_data):      # Returns wifi tx rate from osX
     return tx_value, tx_max_value
 
 
+def parse_args():       # Command line arguments
+    description = (
+        'Command line interface for testing wifi transmission speed\n'
+        '------------------------------------------------------------'
+        '--------------\n'
+        'https://github.com/nickever/wifi-TxRate')
+
+    parser = argparse.ArgumentParser(description=description)
+
+    parser.add_argument("-i", type=int, dest="interval", action="store", default=5,
+                        help="interval between each wifi tx measurement"
+                             " in seconds. Default is 5.")
+    parser.add_argument("-c", type=int, dest="count", action="store", default=float("inf"),
+                        help="number of times to repeat the wifi tx measurement.")
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="count",
+        default=0,
+        help="verbosity (-v, -vv, etc)")
+    parser.add_argument(
+        "--version",
+        action="version",
+        version="%(prog)s (version {version})".format(version=__version__))
+    parser.add_argument("-b", "--bytes", dest="bytes", action="store_true", default=False,
+                        help="wifi tx rate is in Megabytes per second.")
+
+    args = parser.parse_args()
+    return args
+
+
 def main():
+    args = parse_args()
     try:       # Start up messages
         print("Starting Wifi TX Tracker\n(Use cntl +c to end)\n")
         initial_data = get_airport_data()
@@ -108,34 +139,14 @@ def main():
                                                     bits_to_bytes(tx[1]), connection_status))
             else:
                 print("{} - {} / {} Mbps {}".format(time_now(), tx[0], tx[1], connection_status))
-            args.count -= 1
+                args.count -= 1
             if args.count > 0:
                 time.sleep(args.interval)
             else:
-                pass
+                sys.exit("\nComplete. Exiting...\n")
         except KeyboardInterrupt:
             sys.exit("\nKeyboard Interrupt, Exiting...\n")
 
 
 if __name__ == "__main__":      # executed when run from the command line
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", type=int, dest="interval", action="store", default=5,
-                        help="interval between each wifi tx measurement"
-                             " in seconds. Default is 5.")
-    parser.add_argument("-c", type=int, dest="count", action="store", default=float("inf"),
-                        help="number of times to repeat the wifi tx measurement.")
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="count",
-        default=0,
-        help="verbosity (-v, -vv, etc)")
-    parser.add_argument(
-        "--version",
-        action="version",
-        version="%(prog)s (version {version})".format(version=__version__))
-    parser.add_argument("-b", "--bytes", dest="bytes", action="store_true", default=False,
-                        help="wifi tx rate is in Megabytes per second.")
-
-    args = parser.parse_args()
     main()
