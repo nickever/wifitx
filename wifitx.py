@@ -91,7 +91,7 @@ def parse_args():       # Command line arguments
         'Command line interface for testing wifi transmission speed\n'
         '------------------------------------------------------------'
         '--------------\n'
-        'https://github.com/nickever/wifi-TxRate')
+        'https://github.com/nickever/wifitx')
 
     parser = argparse.ArgumentParser(description=description)
 
